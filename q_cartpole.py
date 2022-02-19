@@ -17,7 +17,7 @@ prior_reward = 0
 Observation = [50, 50, 100, 100]
 np_array_win_size = np.array([0.25, 0.25, 0.01, 0.1])
 
-epsilon = 0.5
+epsilon = 0.1
 epsilon_decay_value=0.9 
 
 q_table = np.random.uniform(low=0, high=1, size=(Observation + [env.action_space.n]))

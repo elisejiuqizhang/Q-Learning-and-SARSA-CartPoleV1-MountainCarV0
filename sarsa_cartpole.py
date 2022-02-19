@@ -17,7 +17,7 @@ prior_reward = 0
 Observation = [50, 50, 100, 100]
 np_array_win_size = np.array([0.25, 0.25, 0.01, 0.1])
 
-epsilon = 0.5
+epsilon = 0.1
 epsilon_decay_value=0.9
 
 q_table = np.random.uniform(low=0, high=1, size=(Observation + [env.action_space.n]))
@@ -29,38 +29,53 @@ def get_discrete_state(state):
 reward_record=[]
 mean_reward_record=[]
 
-for episode in range(EPISODES + 1): #go through the episodes
+for episode in range(EPISODES+1): #go through the episodes
+
     discrete_state = get_discrete_state(env.reset()) #get the discrete start for the restarted environment 
     done = False
-    episode_reward = 0 #reward starts as 0 for each episode
+    episode_reward = 0 #reward starts as 0 for the start of the episode
 
-    if episode % CHECKPOINT_INTERVAL == 0: 
+    if np.random.random() > epsilon:
+        action = np.argmax(q_table[discrete_state]) 
+    else:
+        action = np.random.randint(0, env.action_space.n) #a random action
+
+    new_state, reward, done, _ = env.step(action) #take action to get new states, reward, and the "done" status.
+    new_discrete_state = get_discrete_state(new_state)
+    episode_reward += reward #add the reward
+
+    if episode!=0 and episode % CHECKPOINT_INTERVAL == 0: 
         print("Episode: " + str(episode))
 
+
     while not done: 
-
+        
         if np.random.random() > epsilon:
-            action = np.argmax(q_table[discrete_state]) 
+            next_action = np.argmax(q_table[new_discrete_state]) 
         else:
-            action = np.random.randint(0, env.action_space.n) #a random action
+            next_action = np.random.randint(0, env.action_space.n) #a random action
 
-        new_state, reward, done, _ = env.step(action) #step action to get new states, reward, and the "done" status.
-
-        episode_reward += reward #add the reward
-
-        new_discrete_state = get_discrete_state(new_state)
 
         if episode % CHECKPOINT_INTERVAL == 0: #render
             env.render()
 
         if not done: #update q-table
-            future_q = q_table[new_discrete_state + (action,)]
+            future_q = q_table[new_discrete_state + (next_action,)]
             current_q = q_table[discrete_state + (action,)]
             new_q = (1 - LEARNING_RATE) * current_q + LEARNING_RATE * (reward + DISCOUNT * future_q)
-            #new_q = current_q + LEARNING_RATE * (reward + DISCOUNT * max_future_q)
             q_table[discrete_state + (action,)] = new_q
 
         discrete_state = new_discrete_state
+        
+        if np.random.random() > epsilon:
+            action = np.argmax(q_table[discrete_state]) 
+        else:
+            action = np.random.randint(0, env.action_space.n) #a random action
+
+        new_state, reward, done, _ = env.step(action) #take action to get new states, reward, and the "done" status.
+        new_discrete_state = get_discrete_state(new_state)
+        episode_reward += reward #add the reward
+
 
     if epsilon > 0.05: #epsilon modification
         if episode_reward > prior_reward and episode % CHECKPOINT_INTERVAL==0:
